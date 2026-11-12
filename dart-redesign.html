@@ -1,0 +1,685 @@
+<title>DART Website Redesign</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: operations-board. Full-width bands, a 1180px content column, one dark "ops panel" band for the hero mock and proof section, signal orange reserved for primary actions and live status. */
+:root{
+  --bg:#f5f7fa; --surface:#ffffff; --fg:#121a26; --muted:#5b6778; --line:#d8dee7;
+  --panel:#15304d; --panel-2:#1c3a5c; --panel-fg:#e9eef5; --panel-muted:#a9b8cc; --panel-line:#2c4a6c;
+  --accent:#e4620f; --accent-hover:#c9540a; --accent-ink:#ffffff; --accent-soft:#fdeee3;
+  --ok:#1f8a4c; --warn:#c98a1a; --crit:#b3261e;
+  --display:"Barlow Condensed","Arial Narrow",Impact,sans-serif;
+  --body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --radius:6px; --shadow:0 10px 30px rgba(18,26,38,.10);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141c; --surface:#161e29; --fg:#e8edf3; --muted:#9aa6b5; --line:#293341;
+    --panel:#0b1826; --panel-2:#122236; --panel-fg:#e9eef5; --panel-muted:#9fb0c6; --panel-line:#243a55;
+    --accent:#f0702a; --accent-hover:#ff8440; --accent-ink:#141414; --accent-soft:#2a1a10;
+    --ok:#3fb36e; --warn:#e0a53a; --crit:#e2574d; --shadow:0 10px 30px rgba(0,0,0,.4); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141c; --surface:#161e29; --fg:#e8edf3; --muted:#9aa6b5; --line:#293341;
+  --panel:#0b1826; --panel-2:#122236; --panel-fg:#e9eef5; --panel-muted:#9fb0c6; --panel-line:#243a55;
+  --accent:#f0702a; --accent-hover:#ff8440; --accent-ink:#141414; --accent-soft:#2a1a10;
+  --ok:#3fb36e; --warn:#e0a53a; --crit:#e2574d; --shadow:0 10px 30px rgba(0,0,0,.4); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto} *{animation:none!important;transition:none!important}}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+a{color:inherit}
+img{max-width:100%}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.05;margin:0;text-wrap:balance;letter-spacing:.005em}
+h1{font-size:clamp(2.6rem,6vw,4.6rem);font-weight:700}
+h2{font-size:clamp(2rem,4vw,3rem);font-weight:700}
+h3{font-size:1.45rem;font-weight:600}
+p{margin:0}
+.wrap{max-width:1180px;margin-inline:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.band{padding-block:clamp(56px,8vw,104px)}
+.band-tight{padding-block:clamp(36px,5vw,64px)}
+.eyebrow{font-family:var(--mono);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:22px;height:2px;background:var(--accent);display:inline-block}
+.lede{font-size:1.15rem;color:var(--muted);max-width:62ch}
+.stack{display:grid;gap:18px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 22px;border-radius:var(--radius);font-weight:600;font-size:1rem;text-decoration:none;border:1.5px solid transparent;cursor:pointer;font-family:var(--body);transition:background .15s,border-color .15s,transform .1s}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible,a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.btn-ghost:hover{border-color:var(--fg)}
+.btn-light{background:transparent;color:var(--panel-fg);border-color:var(--panel-line)}
+.btn-light:hover{border-color:var(--panel-fg)}
+.tag{display:inline-block;font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:3px;background:var(--accent-soft);color:var(--accent-hover)}
+.note{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.7rem;letter-spacing:.04em;text-transform:uppercase;color:var(--warn);border:1px dashed var(--warn);padding:2px 7px;border-radius:3px}
+
+/* Nav */
+header.site{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--surface);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:68px}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.logo-mark{width:38px;height:38px;border-radius:6px;background:var(--panel);display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;font-size:1.1rem;letter-spacing:.04em;position:relative;overflow:hidden}
+.logo-mark::after{content:"";position:absolute;right:-6px;bottom:-6px;width:16px;height:16px;background:var(--accent);transform:rotate(45deg)}
+.logo-text{display:flex;flex-direction:column;line-height:1.05}
+.logo-text b{font-family:var(--display);font-size:1.35rem;letter-spacing:.06em}
+.logo-text span{font-size:.7rem;color:var(--muted);letter-spacing:.02em}
+.nav-links{display:flex;gap:28px;list-style:none;margin:0;padding:0}
+.nav-links a{text-decoration:none;font-weight:500;font-size:.95rem;color:var(--muted)}
+.nav-links a:hover{color:var(--fg)}
+.nav-cta{display:flex;gap:10px;align-items:center}
+.nav-cta .btn{padding:10px 16px;font-size:.92rem}
+.menu-btn{display:none;background:none;border:1.5px solid var(--line);border-radius:var(--radius);padding:8px 10px;color:var(--fg);font-family:var(--body);font-weight:600}
+@media (max-width:860px){
+  .nav-links{display:none}
+  .nav-links.open{display:flex;position:absolute;left:0;right:0;top:100%;background:var(--surface);border-bottom:1px solid var(--line);flex-direction:column;gap:0;padding:8px max(16px,env(safe-area-inset-left,0px)) 16px}
+  .nav-links.open a{display:block;padding:12px 0;border-bottom:1px solid var(--line)}
+  .menu-btn{display:inline-block}
+  .nav-cta .btn-ghost{display:none}
+}
+
+/* Hero */
+.hero{background:var(--panel);color:var(--panel-fg);position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--panel-line) 1px,transparent 1px),linear-gradient(90deg,var(--panel-line) 1px,transparent 1px);background-size:56px 56px;opacity:.28;mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),transparent 85%)}
+.hero .wrap{position:relative;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:48px;align-items:center}
+@media (max-width:960px){.hero .wrap{grid-template-columns:1fr}}
+.hero .eyebrow{color:var(--panel-muted)}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero .lede{color:var(--panel-muted)}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px}
+.hero-proof{display:flex;flex-wrap:wrap;gap:10px 28px;font-size:.88rem;color:var(--panel-muted);border-top:1px solid var(--panel-line);padding-top:18px}
+.hero-proof b{color:var(--panel-fg);font-weight:600}
+
+/* Ops board mock */
+.board{background:var(--panel-2);border:1px solid var(--panel-line);border-radius:10px;box-shadow:0 30px 60px rgba(0,0,0,.35);overflow:hidden;font-size:.82rem;min-width:0}
+.board-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--panel-line);font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--panel-muted);flex-wrap:wrap}
+.live{display:inline-flex;align-items:center;gap:7px;color:var(--panel-fg)}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(228,98,15,.6);animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(228,98,15,.6)}70%{box-shadow:0 0 0 9px rgba(228,98,15,0)}100%{box-shadow:0 0 0 0 rgba(228,98,15,0)}}
+.board-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:1px;background:var(--panel-line)}
+@media (max-width:520px){.board-grid{grid-template-columns:1fr}}
+.cell{background:var(--panel-2);padding:14px 16px;min-width:0}
+.cell h4{font-family:var(--mono);font-weight:500;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--panel-muted);margin-bottom:10px}
+.shelter{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin-bottom:10px}
+.shelter .name{color:var(--panel-fg);font-weight:500}
+.shelter .num{font-family:var(--mono);color:var(--panel-muted);font-variant-numeric:tabular-nums}
+.bar{grid-column:1/-1;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok)}
+.bar i.warn{background:var(--warn)}
+.bar i.crit{background:var(--crit)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kpi b{display:block;font-family:var(--display);font-size:1.9rem;line-height:1;color:var(--panel-fg);font-variant-numeric:tabular-nums}
+.kpi span{color:var(--panel-muted);font-size:.74rem}
+.ics{display:grid;gap:6px}
+.ics div{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:.74rem;color:var(--panel-muted)}
+.chip{font-size:.66rem;padding:1px 7px;border-radius:3px;letter-spacing:.04em;text-transform:uppercase}
+.chip.ok{background:rgba(31,138,76,.22);color:#7fd3a0}
+.chip.warn{background:rgba(201,138,26,.22);color:#f1c36b}
+.chip.live{background:rgba(228,98,15,.25);color:#ffb27a}
+
+/* Pain strip */
+.pain{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+@media (max-width:860px){.pain{grid-template-columns:1fr}}
+.pain article{border-left:3px solid var(--line);padding-left:18px}
+.pain article b{display:block;font-family:var(--display);font-size:2.4rem;line-height:1;color:var(--accent);margin-bottom:6px}
+.pain article p{color:var(--muted);font-size:.95rem}
+.pain article h3{margin-bottom:6px}
+
+/* Products */
+.products{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+@media (max-width:860px){.products{grid-template-columns:1fr}}
+.product{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:26px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.product header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.product .code{font-family:var(--mono);font-size:.74rem;color:var(--muted);letter-spacing:.08em}
+.product h3{font-size:1.7rem}
+.product .for{font-size:.9rem;color:var(--muted)}
+.product ul{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:.95rem}
+.product li{display:flex;gap:10px;align-items:flex-start}
+.product li::before{content:"";flex:none;width:7px;height:7px;margin-top:8px;background:var(--accent);transform:rotate(45deg)}
+.product .refs{display:flex;flex-wrap:wrap;gap:6px}
+.product .refs span{font-family:var(--mono);font-size:.7rem;border:1px solid var(--line);padding:2px 7px;border-radius:3px;color:var(--muted)}
+.product footer{margin-top:auto;display:flex;gap:10px;flex-wrap:wrap;padding-top:6px}
+.product footer .btn{padding:10px 16px;font-size:.92rem}
+
+/* Lifecycle */
+.life{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+@media (max-width:860px){.life{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.life{grid-template-columns:1fr}}
+.life article{padding:24px;border-right:1px solid var(--line);min-width:0}
+.life article:last-child{border-right:0}
+@media (max-width:860px){.life article{border-bottom:1px solid var(--line)}}
+.life .step{font-family:var(--mono);font-size:.74rem;color:var(--accent);letter-spacing:.1em;margin-bottom:8px}
+.life h3{margin-bottom:8px}
+.life p{color:var(--muted);font-size:.93rem}
+.life .tools{margin-top:12px;font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+
+/* Proof band */
+.proof{background:var(--panel);color:var(--panel-fg)}
+.proof .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:start}
+@media (max-width:860px){.proof .wrap{grid-template-columns:1fr}}
+.proof .eyebrow{color:var(--panel-muted)}
+.proof p{color:var(--panel-muted)}
+.proof blockquote{margin:0;font-family:var(--display);font-size:clamp(1.5rem,2.6vw,2.1rem);line-height:1.2;color:var(--panel-fg);border-left:3px solid var(--accent);padding-left:20px;font-weight:500}
+.quotes{display:grid;gap:14px}
+.quote{background:var(--panel-2);border:1px dashed var(--panel-line);border-radius:8px;padding:18px}
+.quote p{font-style:italic;color:var(--panel-fg)}
+.quote small{display:block;margin-top:10px;font-family:var(--mono);font-size:.72rem;color:var(--panel-muted)}
+.why{display:grid;gap:14px;margin-top:8px}
+.why div{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start}
+.why b{font-family:var(--mono);font-size:.74rem;color:var(--accent);padding-top:4px}
+.why strong{display:block;color:var(--panel-fg);font-weight:600}
+
+/* Pricing */
+.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+@media (max-width:860px){.plans{grid-template-columns:1fr}}
+.plan{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:26px;display:flex;flex-direction:column;gap:14px;position:relative}
+.plan.hot{border-color:var(--accent);box-shadow:var(--shadow)}
+.plan .flag{position:absolute;top:-12px;left:22px;background:var(--accent);color:var(--accent-ink);font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:3px}
+.plan h3{font-size:1.6rem}
+.plan .who{color:var(--muted);font-size:.92rem}
+.plan .price{font-family:var(--display);font-size:1.5rem;font-weight:600}
+.plan .price small{display:block;font-family:var(--body);font-size:.8rem;color:var(--muted);font-weight:400}
+.plan ul{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:.93rem}
+.plan li{display:flex;gap:10px}
+.plan li::before{content:"✓";color:var(--ok);font-weight:700;flex:none}
+.plan .btn{margin-top:auto}
+.funding{margin-top:28px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:22px;display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center}
+@media (max-width:860px){.funding{grid-template-columns:1fr}}
+.funding .ico{width:46px;height:46px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:1.2rem}
+.funding p{color:var(--fg);font-size:.95rem}
+
+/* FAQ */
+.faq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 36px}
+@media (max-width:860px){.faq{grid-template-columns:1fr}}
+details{border-top:1px solid var(--line);padding:14px 0}
+summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-family:var(--mono);color:var(--accent);flex:none}
+details[open] summary::after{content:"–"}
+details p{color:var(--muted);margin-top:8px;font-size:.95rem}
+
+/* Demo form */
+.demo{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.demo .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:48px;align-items:start}
+@media (max-width:900px){.demo .wrap{grid-template-columns:1fr}}
+.contact-lines{display:grid;gap:12px;margin-top:8px}
+.contact-lines div{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:.95rem}
+.contact-lines span.lbl{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);min-width:64px}
+.contact-lines code{font-family:var(--mono);font-size:.95rem;background:var(--bg);padding:3px 8px;border-radius:4px;user-select:all}
+.copy{background:none;border:1px solid var(--line);border-radius:4px;padding:3px 9px;font-family:var(--mono);font-size:.72rem;color:var(--muted);cursor:pointer}
+.copy:hover{color:var(--fg);border-color:var(--fg)}
+form{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:26px;display:grid;gap:16px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:560px){.row{grid-template-columns:1fr}}
+label{display:grid;gap:6px;font-size:.88rem;font-weight:500}
+input,select,textarea{font:inherit;font-size:.95rem;padding:11px 12px;border:1.5px solid var(--line);border-radius:var(--radius);background:var(--surface);color:var(--fg);width:100%}
+textarea{min-height:88px;resize:vertical}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.9rem;font-weight:400}
+@media (max-width:560px){.checks{grid-template-columns:1fr}}
+.checks label{display:flex;align-items:center;gap:8px;font-weight:400}
+.checks input{width:auto}
+.fine{font-size:.78rem;color:var(--muted)}
+.success{display:grid;gap:10px;padding:22px;border-radius:10px;background:var(--accent-soft);border:1px solid var(--accent)}
+.success h3{font-size:1.6rem}
+
+/* Footer */
+footer.site{padding-block:40px;color:var(--muted);font-size:.9rem}
+footer.site .wrap{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:28px}
+@media (max-width:860px){footer.site .wrap{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){footer.site .wrap{grid-template-columns:1fr}}
+footer.site h4{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--fg);margin-bottom:12px;font-weight:500}
+footer.site ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+footer.site a{text-decoration:none}
+footer.site a:hover{color:var(--fg)}
+.foot-bottom{border-top:1px solid var(--line);margin-top:28px;padding-top:18px;font-size:.82rem;display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="logo" href="#top" aria-label="DART home">
+      <span class="logo-mark">D</span>
+      <span class="logo-text"><b>D.A.R.T.</b><span>Disaster &amp; Accident Recovery Technologies</span></span>
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#products">Products</a></li>
+      <li><a href="#lifecycle">How it works</a></li>
+      <li><a href="#story">Why DART</a></li>
+      <li><a href="#plans">Plans</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="https://dartiap.com" target="_blank" rel="noopener">Try the IAP Builder</a>
+      <a class="btn btn-primary" href="#demo">Request a demo</a>
+      <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="navLinks">Menu</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- HERO -->
+<section class="hero band">
+  <div class="wrap">
+    <div class="stack" style="gap:24px">
+      <p class="eyebrow">Operational software for disaster response and recovery</p>
+      <h1>Run the operation.<br>Not the <em>spreadsheet.</em></h1>
+      <p class="lede">DART gives EOCs, shelters, and field teams one source of truth for people, plans, damage, and debris. Built by responders who needed it during real long-term operations, and ready before the next one.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#demo">Request a 30-minute demo</a>
+        <a class="btn btn-light" href="https://dartiap.com" target="_blank" rel="noopener">See the IAP Builder live</a>
+      </div>
+      <div class="hero-proof">
+        <span><b>Field-built</b> during long-term disaster ops</span>
+        <span><b>Audit-ready</b> data for FEMA PA and after-action</span>
+        <span><b>Veteran-founded</b>, Colorado-based</span>
+      </div>
+    </div>
+
+    <div class="board" aria-label="Illustrative view of a DART operations dashboard">
+      <div class="board-head">
+        <span>Op Period 3 &nbsp;·&nbsp; 0700–1900</span>
+        <span class="live"><i></i>Live sync</span>
+      </div>
+      <div class="board-grid">
+        <div class="cell">
+          <h4>Shelter Management · Occupancy</h4>
+          <div class="shelter"><span class="name">Mesa County Fairgrounds</span><span class="num">212 / 250</span><div class="bar"><i class="warn" style="width:85%"></i></div></div>
+          <div class="shelter"><span class="name">Lincoln HS Gymnasium</span><span class="num">96 / 180</span><div class="bar"><i style="width:53%"></i></div></div>
+          <div class="shelter"><span class="name">Faith Community Center</span><span class="num">58 / 60</span><div class="bar"><i class="crit" style="width:97%"></i></div></div>
+          <div class="shelter" style="margin-bottom:0"><span class="name">Red Cross Mobile Unit 4</span><span class="num">0 / 40</span><div class="bar"><i style="width:0%"></i></div></div>
+        </div>
+        <div class="cell">
+          <h4>Today</h4>
+          <div class="kpis">
+            <div class="kpi"><b>366</b><span>Clients sheltered</span></div>
+            <div class="kpi"><b>1,184</b><span>Debris loads ticketed</span></div>
+            <div class="kpi"><b>47</b><span>SDE inspections</span></div>
+            <div class="kpi"><b>12</b><span>Unmet needs open</span></div>
+          </div>
+        </div>
+        <div class="cell">
+          <h4>IAP Builder · ICS documents</h4>
+          <div class="ics">
+            <div><span>ICS-202 Objectives</span><span class="chip ok">Approved</span></div>
+            <div><span>ICS-204 Assignments ×6</span><span class="chip ok">Approved</span></div>
+            <div><span>ICS-205 Comms plan</span><span class="chip warn">In review</span></div>
+            <div><span>ICS-206 Medical plan</span><span class="chip ok">Approved</span></div>
+            <div><span>ICS-209 Sit report</span><span class="chip live">Due 1800</span></div>
+          </div>
+        </div>
+        <div class="cell">
+          <h4>Debris · FEMA PA Cat A</h4>
+          <div class="ics">
+            <div><span>Monitor tickets today</span><span>1,184</span></div>
+            <div><span>Cubic yards hauled</span><span>18,420</span></div>
+            <div><span>Tickets missing photo</span><span class="chip warn">3</span></div>
+            <div><span>Export ready</span><span class="chip ok">Yes</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAIN -->
+<section class="band">
+  <div class="wrap stack" style="gap:40px">
+    <div class="stack" style="gap:14px">
+      <p class="eyebrow">The problem with the status quo</p>
+      <h2>Spreadsheets, group texts, and paper forms cost you in the moments you can least afford it.</h2>
+    </div>
+    <div class="pain">
+      <article>
+        <b>Hours</b>
+        <h3>Lag between the field and the EOC</h3>
+        <p>Counts come in by phone and get retyped. By the time the 1800 briefing starts, the numbers are already old.</p>
+      </article>
+      <article>
+        <b>Dollars</b>
+        <h3>Reimbursement you can't prove</h3>
+        <p>FEMA Public Assistance pays for what you can document. A missing load ticket photo or inspection timestamp is money that stays on the table.</p>
+      </article>
+      <article>
+        <b>Trust</b>
+        <h3>After-action reviews with gaps</h3>
+        <p>When the record lives in six inboxes, nobody can reconstruct what was known, when, and who decided. DART keeps that record for you.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUCTS -->
+<section class="band" id="products" style="background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap stack" style="gap:40px">
+    <div class="stack" style="gap:14px">
+      <p class="eyebrow">Four products. One operating picture.</p>
+      <h2>Each tool stands on its own. Together they cover the full incident.</h2>
+      <p class="lede">Start with the one that hurts most today. Add the others when you're ready. Data moves between them without re-entry.</p>
+    </div>
+    <div class="products">
+      <article class="product">
+        <header><div><div class="code">DART · SMS</div><h3>Shelter Management System</h3></div><span class="tag">Mass care</span></header>
+        <p class="for">For shelter managers, mass care leads, and EOC human services branches.</p>
+        <ul>
+          <li>Register clients once, track them across shelters, transfers, and reunification</li>
+          <li>Live occupancy, capacity, and unmet needs rolled up to the EOC</li>
+          <li>Built for long-term sheltering, not just the first 72 hours</li>
+        </ul>
+        <div class="refs"><span>Client intake</span><span>Occupancy</span><span>Reunification</span><span>Long-term care</span></div>
+        <footer><a class="btn btn-primary" href="#demo" data-interest="sms">Request SMS demo</a></footer>
+      </article>
+
+      <article class="product">
+        <header><div><div class="code">DART · IAP</div><h3>Incident Action Plan Builder</h3></div><span class="tag">Planning</span></header>
+        <p class="for">For planning section chiefs, incident commanders, and anyone who has built an IAP at 2 a.m.</p>
+        <ul>
+          <li>ICS forms that stay connected: change a resource on the 204 and the 203 and 205 follow</li>
+          <li>Carry forward each operational period instead of starting over</li>
+          <li>Try it right now in your browser, no sales call required</li>
+        </ul>
+        <div class="refs"><span>ICS-202</span><span>ICS-203</span><span>ICS-204</span><span>ICS-205</span><span>ICS-206</span><span>ICS-209</span></div>
+        <footer><a class="btn btn-primary" href="https://dartiap.com" target="_blank" rel="noopener">Try the IAP Builder</a><a class="btn btn-ghost" href="#demo" data-interest="iap">Talk to us</a></footer>
+      </article>
+
+      <article class="product">
+        <header><div><div class="code">DART · SDC</div><h3>Substantial Damage Calculator</h3></div><span class="tag">Recovery</span></header>
+        <p class="for">For floodplain managers, building officials, and damage assessment teams.</p>
+        <ul>
+          <li>Structured SDA/SDE workflow from field inspection through determination letter</li>
+          <li>Validation on the way in, so the data holds up when it's challenged</li>
+          <li>Reporting that supports the 50% rule and NFIP compliance</li>
+        </ul>
+        <div class="refs"><span>SDA / SDE</span><span>NFIP 50% rule</span><span>Field inspection</span><span>Audit trail</span></div>
+        <footer><a class="btn btn-primary" href="#demo" data-interest="sdc">Request SDC demo</a></footer>
+      </article>
+
+      <article class="product">
+        <header><div><div class="code">DART · DBM</div><h3>Debris Management</h3></div><span class="tag">FEMA PA Cat A</span></header>
+        <p class="for">For state debris coordinators, local public works, and debris monitors.</p>
+        <ul>
+          <li>Statewide oversight with local execution: one system, every jurisdiction</li>
+          <li>Load tickets, truck certifications, site logs, and photos in one record</li>
+          <li>Exports shaped for FEMA Public Assistance Category A reimbursement</li>
+        </ul>
+        <div class="refs"><span>Load tickets</span><span>Truck certs</span><span>TDSR sites</span><span>PA Cat A export</span></div>
+        <footer><a class="btn btn-primary" href="#demo" data-interest="dbm">Request DBM demo</a></footer>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- LIFECYCLE -->
+<section class="band" id="lifecycle">
+  <div class="wrap stack" style="gap:40px">
+    <div class="stack" style="gap:14px">
+      <p class="eyebrow">From activation to reimbursement</p>
+      <h2>One record that follows the incident, start to finish.</h2>
+    </div>
+    <div class="life">
+      <article>
+        <div class="step">PHASE 1</div>
+        <h3>Prepare</h3>
+        <p>Load your shelters, resources, and templates before the season. Train in the same tool you'll use on the worst day.</p>
+        <div class="tools">SMS · IAP</div>
+      </article>
+      <article>
+        <div class="step">PHASE 2</div>
+        <h3>Respond</h3>
+        <p>Field teams enter once. The EOC sees it live. The IAP for the next operational period builds from what's already true.</p>
+        <div class="tools">SMS · IAP</div>
+      </article>
+      <article>
+        <div class="step">PHASE 3</div>
+        <h3>Recover</h3>
+        <p>Damage assessments and debris operations run on structured data, with the photos, timestamps, and signatures attached.</p>
+        <div class="tools">SDC · DBM</div>
+      </article>
+      <article>
+        <div class="step">PHASE 4</div>
+        <h3>Reimburse &amp; review</h3>
+        <p>Export what FEMA, the state, and your after-action team ask for. No reconstruction from inboxes.</p>
+        <div class="tools">DBM · SDC · SMS</div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- PROOF / STORY -->
+<section class="proof band" id="story">
+  <div class="wrap">
+    <div class="stack" style="gap:22px">
+      <p class="eyebrow">Our story</p>
+      <blockquote>"We built DART because division leaders and EOCs needed accurate, real-time data and had no practical way to collect, analyze, or report it."</blockquote>
+      <p>DART was created from direct experience in disaster environments. The platform was developed while supporting long-term disaster operations. What began as a simple way to track survivors, shelters, and assets grew into a platform for shelter management, situational reporting, volunteer coordination, and debris operations.</p>
+      <p>Every DART product is shaped by lessons learned in the field. Not theory, not buzzwords, and not technology for technology's sake.</p>
+      <div class="why">
+        <div><b>01</b><div><strong>Built by people who have worked the incident</strong><span>Our team has stood in the shelter and sat in the EOC. The product reflects it.</span></div></div>
+        <div><b>02</b><div><strong>Support from someone who knows ICS</strong><span>When you call during an activation, you reach a person who understands operational periods, not a ticket queue.</span></div></div>
+        <div><b>03</b><div><strong>Your data stays yours</strong><span>Export anytime, in formats your auditors and partners can open.</span></div></div>
+      </div>
+    </div>
+    <div class="stack" style="gap:16px">
+      <p class="eyebrow">What customers say</p>
+      <div class="quotes">
+        <div class="quote">
+          <p>"Quote from a county emergency manager about how DART changed their sheltering or debris operation."</p>
+          <small>NAME · TITLE · AGENCY &nbsp;<span class="note">Placeholder, replace before launch</span></small>
+        </div>
+        <div class="quote">
+          <p>"Quote from a planning section chief about the IAP Builder saving time between operational periods."</p>
+          <small>NAME · TITLE · AGENCY &nbsp;<span class="note">Placeholder, replace before launch</span></small>
+        </div>
+        <div class="quote">
+          <p>"Quote from a state debris coordinator about FEMA PA documentation and reimbursement."</p>
+          <small>NAME · TITLE · AGENCY &nbsp;<span class="note">Placeholder, replace before launch</span></small>
+        </div>
+      </div>
+      <p style="font-size:.85rem">Add agency logos here once customers approve use of their name. Even two or three county seals do more than any paragraph of copy.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PLANS -->
+<section class="band" id="plans">
+  <div class="wrap stack" style="gap:40px">
+    <div class="stack" style="gap:14px">
+      <p class="eyebrow">Plans</p>
+      <h2>Priced for agencies, not for enterprise software budgets.</h2>
+      <p class="lede">Annual subscriptions scoped to your jurisdiction and population. Every plan includes onboarding, training, and activation support.</p>
+    </div>
+    <div class="plans">
+      <article class="plan">
+        <h3>Single Product</h3>
+        <p class="who">One tool for one agency. The fastest way to start.</p>
+        <p class="price">Request pricing<small>Annual license, scoped by jurisdiction size</small></p>
+        <ul>
+          <li>Any one DART product</li>
+          <li>Unlimited users in your agency</li>
+          <li>Onboarding and virtual training</li>
+          <li>Email and phone support</li>
+        </ul>
+        <a class="btn btn-ghost" href="#demo" data-interest="single">Get a quote</a>
+      </article>
+      <article class="plan hot">
+        <span class="flag">Most common</span>
+        <h3>Agency Bundle</h3>
+        <p class="who">Two or more products working from the same record.</p>
+        <p class="price">Request pricing<small>Bundle discount on each added product</small></p>
+        <ul>
+          <li>Any two or more products</li>
+          <li>Shared client, resource, and site data</li>
+          <li>Pre-season readiness review</li>
+          <li>Priority support during activations</li>
+        </ul>
+        <a class="btn btn-primary" href="#demo" data-interest="bundle">Build my bundle</a>
+      </article>
+      <article class="plan">
+        <h3>State &amp; Regional</h3>
+        <p class="who">Statewide oversight with local execution across every county.</p>
+        <p class="price">Request pricing<small>Multi-jurisdiction agreement</small></p>
+        <ul>
+          <li>All products, all jurisdictions</li>
+          <li>Roll-up dashboards for the state EOC</li>
+          <li>Custom exports and integrations</li>
+          <li>Dedicated account lead</li>
+        </ul>
+        <a class="btn btn-ghost" href="#demo" data-interest="state">Talk to us</a>
+      </article>
+    </div>
+    <div class="funding">
+      <div class="ico">$</div>
+      <div>
+        <strong>Often grant-eligible.</strong>
+        <p>Emergency management software is frequently funded through EMPG, HMGP, and FEMA Public Assistance management costs. Ask us for the budget justification language other agencies have used. <span class="note">Confirm eligibility wording with a grants specialist</span></p>
+      </div>
+      <a class="btn btn-ghost" href="#demo" data-interest="funding">Request funding guide</a>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="band" id="faq" style="background:var(--surface);border-top:1px solid var(--line)">
+  <div class="wrap stack" style="gap:36px">
+    <div class="stack" style="gap:14px">
+      <p class="eyebrow">Questions emergency managers ask us</p>
+      <h2>Straight answers.</h2>
+    </div>
+    <div class="faq">
+      <details><summary>How fast can we be up and running?</summary><p>Most single-product deployments are live within a few weeks, including training. During an active incident we prioritize activation support so you can stand up quickly.</p></details>
+      <details><summary>Does it work in the field with poor connectivity?</summary><p>DART is designed for field use. Ask us about the specific offline and low-bandwidth behavior for the product you need, so you know exactly what to expect before an activation.</p></details>
+      <details><summary>Who owns the data?</summary><p>You do. Export your data at any time in standard formats. We never sell or share agency or client data.</p></details>
+      <details><summary>Is client and survivor data protected?</summary><p>Shelter and client records are sensitive. DART uses role-based access and keeps an audit trail of who viewed and changed records. Request our security overview for the details your IT team will want.</p></details>
+      <details><summary>Can we start with one product and add more later?</summary><p>Yes. Many agencies start with the IAP Builder or Shelter Management and add Debris and Substantial Damage as needs change. Your existing data carries over.</p></details>
+      <details><summary>What does support look like during an activation?</summary><p>You reach a person who understands ICS and operational periods, by phone. Priority support is included on Bundle and State plans.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO FORM -->
+<section class="demo band" id="demo">
+  <div class="wrap">
+    <div class="stack" style="gap:20px">
+      <p class="eyebrow">Request a demo</p>
+      <h2>See it with your shelters, your forms, your debris sites.</h2>
+      <p class="lede">Thirty minutes. We'll walk through the product you choose using scenarios from your jurisdiction, and leave you with pricing and a funding note.</p>
+      <div class="contact-lines">
+        <div><span class="lbl">Phone</span><code id="ph1">(719) 761-0739</code><button class="copy" data-copy="ph1" type="button">Copy</button></div>
+        <div><span class="lbl">Alt</span><code id="ph2">(719) 238-4630</code><button class="copy" data-copy="ph2" type="button">Copy</button></div>
+        <div><span class="lbl">Email</span><code id="em1">info@darttechsolutions.org</code><button class="copy" data-copy="em1" type="button">Copy</button><span class="note">Confirm address</span></div>
+        <div><span class="lbl">Try</span><a href="https://dartiap.com" target="_blank" rel="noopener">dartiap.com</a></div>
+      </div>
+    </div>
+
+    <form id="demoForm" novalidate>
+      <div class="row">
+        <label>Name<input id="f-name" name="name" type="text" autocomplete="name" required></label>
+        <label>Work email<input id="f-email" name="email" type="email" autocomplete="email" required></label>
+      </div>
+      <div class="row">
+        <label>Agency or organization<input id="f-org" name="org" type="text" autocomplete="organization" required></label>
+        <label>Your role<select id="f-role" name="role">
+          <option>Emergency manager / director</option>
+          <option>Planning section / IAP</option>
+          <option>Mass care / shelter operations</option>
+          <option>Public works / debris</option>
+          <option>Floodplain / building official</option>
+          <option>State or regional coordinator</option>
+          <option>Other</option>
+        </select></label>
+      </div>
+      <fieldset style="border:0;padding:0;margin:0;display:grid;gap:8px">
+        <legend style="font-size:.88rem;font-weight:500;margin-bottom:4px">What are you interested in?</legend>
+        <div class="checks">
+          <label><input type="checkbox" id="i-sms" name="interest" value="Shelter Management"> Shelter Management (SMS)</label>
+          <label><input type="checkbox" id="i-iap" name="interest" value="IAP Builder"> IAP Builder</label>
+          <label><input type="checkbox" id="i-sdc" name="interest" value="Substantial Damage Calculator"> Substantial Damage Calculator</label>
+          <label><input type="checkbox" id="i-dbm" name="interest" value="Debris Management"> Debris Management (DBM)</label>
+          <label><input type="checkbox" id="i-funding" name="interest" value="Funding guide"> Grant funding guide</label>
+          <label><input type="checkbox" id="i-security" name="interest" value="Security overview"> Security overview</label>
+        </div>
+      </fieldset>
+      <label>Anything we should know? <span style="font-weight:400;color:var(--muted)">(optional)</span><textarea id="f-notes" name="notes" placeholder="Upcoming exercise, active incident, procurement timeline, current tools..."></textarea></label>
+      <button class="btn btn-primary" type="submit" id="submitBtn">Request my demo</button>
+      <p class="fine">We respond within one business day. During active incidents, call the number above and we'll pick up.</p>
+    </form>
+  </div>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div>
+      <a class="logo" href="#top" style="margin-bottom:14px"><span class="logo-mark">D</span><span class="logo-text"><b>D.A.R.T.</b><span>Disaster &amp; Accident Recovery Technologies</span></span></a>
+      <p>Clear information. Confident decisions. Available when it matters most.</p>
+    </div>
+    <div>
+      <h4>Products</h4>
+      <ul><li><a href="#products">Shelter Management</a></li><li><a href="#products">IAP Builder</a></li><li><a href="#products">Substantial Damage Calculator</a></li><li><a href="#products">Debris Management</a></li></ul>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul><li><a href="#story">Our story</a></li><li><a href="#plans">Plans &amp; funding</a></li><li><a href="#faq">FAQ</a></li><li><a href="https://www.linkedin.com/in/mark-lambert-us-army-veteran-78b952a/" target="_blank" rel="noopener">LinkedIn</a></li></ul>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <ul><li>(719) 761-0739</li><li>(719) 238-4630</li><li><a href="#demo">Request a demo</a></li><li>Colorado, USA</li></ul>
+    </div>
+  </div>
+  <div class="wrap foot-bottom">
+    <span>© 2026 Disaster &amp; Accident Recovery Technologies. All rights reserved.</span>
+    <span><a href="#top">Privacy</a> &nbsp;·&nbsp; <a href="#top">Security</a> &nbsp;·&nbsp; <a href="#top">Accessibility</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // Mobile menu
+  var btn=document.getElementById('menuBtn'),links=document.getElementById('navLinks');
+  btn.addEventListener('click',function(){var o=links.classList.toggle('open');btn.setAttribute('aria-expanded',o?'true':'false');});
+  links.addEventListener('click',function(e){if(e.target.tagName==='A'){links.classList.remove('open');btn.setAttribute('aria-expanded','false');}});
+
+  // Preselect interest from CTA buttons
+  var map={sms:['i-sms'],iap:['i-iap'],sdc:['i-sdc'],dbm:['i-dbm'],funding:['i-funding'],single:[],bundle:['i-sms','i-iap'],state:['i-sms','i-iap','i-sdc','i-dbm']};
+  document.querySelectorAll('[data-interest]').forEach(function(a){
+    a.addEventListener('click',function(){
+      var ids=map[a.getAttribute('data-interest')]||[];
+      ids.forEach(function(id){var c=document.getElementById(id);if(c)c.checked=true;});
+      if(a.getAttribute('data-interest')==='bundle'||a.getAttribute('data-interest')==='state'){
+        var n=document.getElementById('f-notes');if(n&&!n.value)n.value=(a.getAttribute('data-interest')==='state'?'Interested in a state / regional agreement.':'Interested in an agency bundle.');
+      }
+    });
+  });
+
+  // Copy buttons
+  document.querySelectorAll('.copy').forEach(function(b){
+    b.addEventListener('click',function(){
+      var el=document.getElementById(b.getAttribute('data-copy'));var t=el.textContent;
+      function done(){var o=b.textContent;b.textContent='Copied';setTimeout(function(){b.textContent=o;},1400);}
+      function fallback(){var r=document.createRange();r.selectNodeContents(el);var s=window.getSelection();s.removeAllRanges();s.addRange(r);}
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,fallback);}else{fallback();}
+    });
+  });
+
+  // Demo form: validate, then show confirmation. Wire the submit to your CRM / form backend before launch.
+  var form=document.getElementById('demoForm');
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var req=['f-name','f-email','f-org'],ok=true;
+    req.forEach(function(id){var f=document.getElementById(id);var bad=!f.value.trim()||(f.type==='email'&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.value));f.style.borderColor=bad?'var(--crit)':'';if(bad)ok=false;});
+    if(!ok){var first=req.map(function(id){return document.getElementById(id);}).filter(function(f){return f.style.borderColor;})[0];if(first)first.focus();return;}
+    var name=document.getElementById('f-name').value.trim().split(' ')[0];
+    var picks=Array.prototype.slice.call(form.querySelectorAll('input[name=interest]:checked')).map(function(c){return c.value;});
+    var box=document.createElement('div');box.className='success';
+    box.innerHTML='<h3>Thanks, '+name.replace(/[<>&]/g,'')+'. We\'ll be in touch within one business day.</h3>'+
+      '<p>'+(picks.length?'We\'ll prepare a walkthrough of <strong>'+picks.join(', ').replace(/[<>&]/g,'')+'</strong> using scenarios from your jurisdiction.':'We\'ll reach out to learn which products fit your operation.')+'</p>'+
+      '<p class="fine">Need us sooner? Call (719) 761-0739.</p>';
+    form.replaceWith(box);box.setAttribute('tabindex','-1');box.focus();
+  });
+})();
+</script>
